@@ -2,6 +2,30 @@
 <html lang="es" class="dark">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var origFetch = window.fetch;
+          if (origFetch) {
+            Object.defineProperty(window, 'fetch', {
+              value: origFetch.bind(window),
+              writable: true,
+              configurable: true,
+            });
+          }
+        } catch (e) {}
+        window.addEventListener(
+          'error',
+          function (e) {
+            if (e && e.filename && e.filename.indexOf('chrome-extension://') === 0) {
+              e.stopImmediatePropagation();
+              e.preventDefault();
+            }
+          },
+          true
+        );
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>THE HACKER: DIGITAL WORLD</title>
     <meta name="description" content="Videojuego móvil 2D tipo arcade/plataformas moderno. Recorre 7 mundos tecnológicos y salva el Digital Core." />

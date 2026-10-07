@@ -120,10 +120,10 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
   const worldConfig = WORLDS_DATA.find((w) => w.id === level.worldId) || WORLDS_DATA[0];
 
-  // Mostrar el objetivo de forma breve al iniciar el nivel
+  // Mostrar el objetivo durante suficiente tiempo (14 segundos) al iniciar el nivel
   useEffect(() => {
     setShowObjectiveToast(true);
-    const t = window.setTimeout(() => setShowObjectiveToast(false), 4500);
+    const t = window.setTimeout(() => setShowObjectiveToast(false), 14000);
     return () => clearTimeout(t);
   }, [level.id]);
 
@@ -1055,8 +1055,8 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         ctx.arc(5, floatY - 2, 3, 0, Math.PI * 2);
         ctx.fill();
 
-        // Bocadillo de diálogo corto cuando el jugador está cerca
-        if (Math.abs(player.x - npcWorldX) < 220) {
+        // Bocadillo de diálogo corto cuando el jugador está cerca (mayor rango de visibilidad)
+        if (Math.abs(player.x - npcWorldX) < 380) {
           ctx.font = '700 10px "Outfit", sans-serif';
           const text = level.npc.dialogue;
           const bubbleW = Math.min(240, Math.max(150, text.length * 5.3));
@@ -1355,12 +1355,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         </div>
       </header>
 
-      {/* Sub-barra con el Mundo y Nombre del Nivel */}
-      <div className="w-full bg-[#091326] px-4 py-1 flex items-center justify-between text-[11px] font-mono-tech border-b border-[#00E5FF]/15 shrink-0">
+      {/* Sub-barra con el Mundo, Nombre del Nivel y botón para ver/ocultar la Misión */}
+      <div className="w-full bg-[#091326] px-4 py-1.5 flex items-center justify-between text-[11px] font-mono-tech border-b border-[#00E5FF]/15 shrink-0">
         <span className="text-[#00E5FF] font-bold truncate">
           WORLD {level.worldId} · LEVEL {level.id}: {level.name}
         </span>
-        <span className="text-[#00FF66] font-bold shrink-0 ml-2">{level.progressionRole}</span>
+        <button
+          onClick={() => setShowObjectiveToast((prev) => !prev)}
+          className="px-2.5 py-0.5 rounded-full bg-[#00FF66]/15 border border-[#00FF66]/60 text-[#00FF66] font-bold shrink-0 ml-2 cursor-pointer active:scale-95 transition"
+        >
+          {showObjectiveToast ? 'OCULTAR MISIÓN' : '📋 VER MISIÓN'}
+        </button>
       </div>
 
       {/* ÁREA CENTRAL DEL CANVAS 2D */}
@@ -1372,17 +1377,17 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           className="w-full h-full object-contain max-h-full"
         />
 
-        {/* Banner breve del Objetivo al empezar el nivel */}
+        {/* Banner de la tarea / Objetivo del nivel */}
         {showObjectiveToast && (
           <div
             onClick={() => setShowObjectiveToast(false)}
-            className="absolute top-3 inset-x-4 max-w-md mx-auto rounded-2xl bg-[#071022]/95 border-2 border-[#00E5FF] p-3 shadow-2xl z-30 cursor-pointer"
+            className="absolute top-3 inset-x-4 max-w-md mx-auto rounded-2xl bg-[#071022]/95 border-2 border-[#00E5FF] p-3.5 shadow-2xl z-30 cursor-pointer electric-glow"
           >
-            <div className="flex items-center justify-between text-[10px] font-mono-tech text-[#00FF66] mb-1">
-              <span>MISIÓN · NIVEL {level.id}</span>
-              <span>{level.difficultyLabel}</span>
+            <div className="flex items-center justify-between text-[10px] font-mono-tech text-[#00FF66] mb-1.5">
+              <span>MISIÓN · NIVEL {level.id} ({level.progressionRole})</span>
+              <span className="text-[#00E5FF]">{level.difficultyLabel} · [✕ CERRAR]</span>
             </div>
-            <p className="text-xs text-slate-100 leading-snug">{level.objective}</p>
+            <p className="text-xs sm:text-sm text-slate-100 leading-relaxed font-medium">{level.objective}</p>
           </div>
         )}
 

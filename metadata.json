@@ -1,6 +1,8 @@
 {
-  "name": "Ledger Protocol: Genesis",
+  "name": "The PGR Hacker",
   "description": "Videojuego 2D móvil de plataformas con estética Cyberpunk Retro Terminal para aprender los fundamentos de Blockchain.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
