@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   SaveData,
   ScreenState,
   LevelCompletionSummary,
 } from './types/game';
 import { WORLDS_DATA } from './data/worlds';
-import { LEVELS_DATA, getLevelById, getLevelsByWorld } from './data/levels';
+import { getLevelById } from './data/levels';
 import {
   loadSaveData,
   saveProgressData,
   resetAllProgress,
   getLevelProgress,
-  getWorldStats,
   getGlobalStats,
 } from './systems/storage';
 import { AudioSystem } from './systems/audio';
 import { CharacterIllustration } from './components/CharacterIllustration';
 import { PWAInstallButton } from './components/PWAInstallButton';
+import { VerticalNetworkMap } from './components/VerticalNetworkMap';
 import { GameCanvas } from './engine/GameCanvas';
 import {
   Play,
@@ -26,10 +26,8 @@ import {
   VolumeX,
   Music,
   Trash2,
-  Lock,
   CheckCircle2,
   ArrowRight,
-  Home,
   X,
   Sparkles,
 } from 'lucide-react';
@@ -39,7 +37,10 @@ export default function App() {
   const [screen, setScreen] = useState<ScreenState>('HOME');
   const [currentLevelId, setCurrentLevelId] = useState<number>(1);
   const [lastSummary, setLastSummary] = useState<LevelCompletionSummary | null>(null);
-  const [expandedWorldId, setExpandedWorldId] = useState<number>(1);
+  const [mapTransition, setMapTransition] = useState<{
+    fromLevelId: number | null;
+    toLevelId: number | null;
+  }>({ fromLevelId: null, toLevelId: null });
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [confirmReset, setConfirmReset] = useState<boolean>(false);
 
@@ -56,7 +57,7 @@ export default function App() {
     setScreen('GAME');
   };
 
-  // Botón PLAY principal: lleva al siguiente nivel pendiente (o al Nivel 1 al empezar)
+  // Botón PLAY desde la pantalla principal: abre el Mapa Vertical centrado en el nivel actual o inicia el nivel
   const handlePlayFromHome = () => {
     AudioSystem.unlock();
     AudioSystem.startMusic();
@@ -109,36 +110,41 @@ export default function App() {
     setScreen('LEVEL_COMPLETE');
   };
 
-  // Navegación continua entre niveles sin obligar a volver al mapa
-  const handleContinueAfterLevel = () => {
+  // Transición tras LEVEL COMPLETE:
+  // Si completó el Nivel 35 -> Pantalla final del juego
+  // Si completó los niveles 1..34 -> Vuelve al Mapa Vertical y anima a The Hacker avanzando hacia el siguiente nodo/isla
+  const handleContinueToMapAnimation = () => {
     if (!lastSummary) return;
 
-    // Si acaba de terminar el Nivel 35 -> FINAL DEL JUEGO
     if (lastSummary.isGameEnd || lastSummary.levelId === 35) {
       AudioSystem.systemRestored();
       setScreen('GAME_ENDING');
       return;
     }
 
-    // Si acaba de terminar el Nivel 5 de un mundo -> Pantalla de transición "[WORLD] UNLOCKED!"
-    if (lastSummary.isWorldEnd) {
-      AudioSystem.worldTransition();
-      setScreen('WORLD_TRANSITION');
+    const nextLevelId = Math.min(35, lastSummary.levelId + 1);
+    setMapTransition({
+      fromLevelId: lastSummary.levelId,
+      toLevelId: nextLevelId,
+    });
+    setScreen('MAP');
+  };
+
+  // Opción para pasar directamente al siguiente nivel
+  const handleDirectNextLevel = () => {
+    if (!lastSummary) return;
+    if (lastSummary.isGameEnd || lastSummary.levelId === 35) {
+      AudioSystem.systemRestored();
+      setScreen('GAME_ENDING');
       return;
     }
-
-    // Flujo normal: siguiente nivel directamente
-    const nextId = Math.min(35, lastSummary.levelId + 1);
-    startLevel(nextId);
+    const nextLevelId = Math.min(35, lastSummary.levelId + 1);
+    startLevel(nextLevelId);
   };
 
-  // Continuar desde la pantalla de transición de mundo al Nivel 1 del siguiente mundo
-  const handleContinueFromWorldTransition = () => {
-    if (!lastSummary) return;
-    const nextId = Math.min(35, lastSummary.levelId + 1);
-    AudioSystem.unlock();
-    startLevel(nextId);
-  };
+  const clearMapTransition = useCallback(() => {
+    setMapTransition({ fromLevelId: null, toLevelId: null });
+  }, []);
 
   const toggleSound = () => {
     setSaveData((prev) => {
@@ -163,7 +169,7 @@ export default function App() {
     setSaveData(fresh);
     setConfirmReset(false);
     setShowSettingsModal(false);
-    setExpandedWorldId(1);
+    setMapTransition({ fromLevelId: null, toLevelId: null });
     setScreen('HOME');
   };
 
@@ -172,14 +178,13 @@ export default function App() {
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-[#03060C] overflow-hidden select-none">
-      {/* Contenedor Mobile-First Vertical (Pantalla completa en smartphone, marco vertical limpio en escritorio) */}
+      {/* Contenedor Mobile-First Vertical */}
       <div className="relative w-full h-full max-w-[480px] mx-auto flex flex-col justify-between bg-[#050811] border-x border-[#00E5FF]/20 shadow-[0_0_50px_rgba(0,229,255,0.12)] overflow-hidden">
         {/* =====================================================================
             1. PANTALLA PRINCIPAL (HOME)
            ===================================================================== */}
         {screen === 'HOME' && (
           <div className="relative w-full h-full flex flex-col items-center justify-between p-6 z-10 overflow-y-auto">
-            {/* Decoración tecnológica de fondo */}
             <div className="absolute inset-0 pointer-events-none opacity-25 bg-[radial-gradient(circle_at_50%_25%,#00E5FF_0%,transparent_60%)]" />
 
             {/* Barra superior de estado */}
@@ -216,13 +221,12 @@ export default function App() {
                 DIGITAL WORLD
               </h2>
 
-              {/* Asset Principal de The Hacker */}
               <div className="relative my-1">
                 <CharacterIllustration size={185} />
               </div>
 
               <p className="text-xs text-slate-300 max-w-xs leading-relaxed mt-1">
-                Recorre los <span className="text-[#00E5FF] font-bold">7 mundos digitales</span>, supera los{' '}
+                Recorre las <span className="text-[#00E5FF] font-bold">7 islas digitales</span>, supera los{' '}
                 <span className="text-[#00FF66] font-bold">35 niveles</span> y detén la corrupción en el Digital Core.
               </p>
             </div>
@@ -240,7 +244,7 @@ export default function App() {
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => {
-                    setExpandedWorldId(saveData.unlockedWorld);
+                    setMapTransition({ fromLevelId: null, toLevelId: null });
                     setScreen('MAP');
                   }}
                   className="py-3.5 rounded-2xl bg-[#0A152C] border-2 border-[#00E5FF] text-[#00E5FF] font-arcade text-sm font-extrabold tracking-wide flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
@@ -267,186 +271,21 @@ export default function App() {
         )}
 
         {/* =====================================================================
-            2. MAPA GENERAL ÚNICO (WORLD 1 -> WORLD 7 LINEAL)
+            2. MAPA PRINCIPAL VERTICAL DE 7 ISLAS DIGITALES (MAP)
            ===================================================================== */}
         {screen === 'MAP' && (
-          <div className="w-full h-full flex flex-col justify-between bg-[#050811] overflow-hidden">
-            {/* Cabecera del Mapa General */}
-            <header className="px-4 py-3 bg-[#081124] border-b border-[#00E5FF]/30 flex items-center justify-between shrink-0">
-              <button
-                onClick={() => setScreen('HOME')}
-                className="p-2 rounded-xl bg-[#0C1A36] border border-[#00E5FF]/50 text-[#00E5FF] flex items-center gap-1.5 text-xs font-bold cursor-pointer"
-              >
-                <Home className="w-4 h-4" />
-                <span>INICIO</span>
-              </button>
-
-              <div className="text-center">
-                <h2 className="font-arcade text-base font-black text-[#00E5FF] tracking-wide">
-                  WORLD MAP
-                </h2>
-                <p className="text-[10px] font-mono-tech text-[#00FF66]">
-                  7 MUNDOS · 35 NIVELES LINEALES
-                </p>
-              </div>
-
-              <div className="bg-[#050811] border border-[#00E5FF]/40 px-2.5 py-1 rounded-xl font-mono-tech text-xs font-bold text-[#00E5FF]">
-                🪙 {saveData.totalBytecoins}
-              </div>
-            </header>
-
-            {/* Camino Lineal Único: WORLD 1 -> WORLD 2 -> ... -> WORLD 7 */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-              {WORLDS_DATA.map((world, idx) => {
-                const isUnlocked = world.id <= saveData.unlockedWorld;
-                const stats = getWorldStats(saveData, world.id);
-                const isExpanded = expandedWorldId === world.id;
-                const worldLevels = getLevelsByWorld(world.id);
-
-                return (
-                  <div key={world.id} className="relative">
-                    {/* Conector lineal vertical entre mundos */}
-                    {idx > 0 && (
-                      <div className="flex justify-center -mt-3 mb-1">
-                        <div
-                          className={`w-1 h-5 rounded-full ${
-                            isUnlocked ? 'bg-[#00FF66] shadow-[0_0_10px_#00FF66]' : 'bg-slate-800'
-                          }`}
-                        />
-                      </div>
-                    )}
-
-                    <div
-                      className={`rounded-3xl border-2 transition-all overflow-hidden ${
-                        isUnlocked
-                          ? 'bg-[#09142A] border-[#00E5FF] electric-glow'
-                          : 'bg-[#070C18] border-slate-800 opacity-65'
-                      }`}
-                    >
-                      {/* Cabecera del Nodo del Mundo */}
-                      <div
-                        onClick={() => {
-                          if (isUnlocked) {
-                            setExpandedWorldId(isExpanded ? 0 : world.id);
-                          }
-                        }}
-                        className={`p-4 flex items-center justify-between gap-3 ${
-                          isUnlocked ? 'cursor-pointer' : 'cursor-not-allowed'
-                        }`}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div
-                            className={`w-11 h-11 rounded-2xl font-arcade text-lg font-black flex items-center justify-center shrink-0 ${
-                              stats.completedCount === 5
-                                ? 'bg-[#00FF66] text-[#050811]'
-                                : isUnlocked
-                                ? 'bg-[#00E5FF] text-[#050811]'
-                                : 'bg-slate-800 text-slate-500'
-                            }`}
-                          >
-                            {isUnlocked ? world.id : <Lock className="w-5 h-5" />}
-                          </div>
-
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono-tech text-[10px] font-bold text-[#00FF66]">
-                                WORLD {world.id}
-                              </span>
-                              <span
-                                className={`text-[10px] font-mono-tech px-2 py-0.5 rounded-full font-bold ${
-                                  isUnlocked
-                                    ? 'bg-[#00FF66]/15 text-[#00FF66]'
-                                    : 'bg-slate-800 text-slate-400'
-                                }`}
-                              >
-                                {isUnlocked ? 'UNLOCKED' : 'LOCKED'}
-                              </span>
-                            </div>
-                            <h3 className="font-arcade text-base font-extrabold text-white truncate">
-                              {world.name}
-                            </h3>
-                            <p className="text-[11px] text-slate-300 truncate">{world.subtitle}</p>
-                          </div>
-                        </div>
-
-                        {/* Resumen de progreso de sus 5 niveles y estrellas */}
-                        <div className="text-right font-mono-tech shrink-0">
-                          <div className="text-xs font-extrabold text-[#00E5FF]">
-                            {stats.completedCount}/5 LVL
-                          </div>
-                          <div className="text-[11px] text-[#00FF66]">
-                            ⭐ {stats.starsEarned}/15
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            💾 {stats.dataCoresEarned}/15
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Lista lineal de los 5 niveles del mundo cuando está desbloqueado y desplegado */}
-                      {isUnlocked && isExpanded && (
-                        <div className="px-4 pb-4 pt-2 border-t border-[#00E5FF]/20 bg-[#050A16] space-y-2">
-                          <p className="text-[11px] text-slate-300 italic mb-2">{world.storyHint}</p>
-
-                          {worldLevels.map((lvl) => {
-                            const lvlProg = getLevelProgress(saveData, lvl.id);
-                            const lvlUnlocked = lvl.id <= saveData.unlockedLevel;
-                            const coresCount = lvlProg.dataCoresCollected.filter(Boolean).length;
-
-                            return (
-                              <div
-                                key={lvl.id}
-                                className={`p-3 rounded-2xl border flex items-center justify-between gap-2 ${
-                                  lvlUnlocked
-                                    ? 'bg-[#0A152C] border-[#00E5FF]/50'
-                                    : 'bg-[#070B14] border-slate-800 opacity-60'
-                                }`}
-                              >
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-2 text-[10px] font-mono-tech">
-                                    <span className="text-[#00E5FF] font-bold">
-                                      LVL {lvl.id} ({lvl.levelInWorld}/5)
-                                    </span>
-                                    <span className="text-[#00FF66]">{lvl.progressionRole}</span>
-                                  </div>
-                                  <div className="font-arcade text-sm font-bold text-white truncate">
-                                    {lvl.name}
-                                  </div>
-                                  <div className="flex items-center gap-3 text-[11px] font-mono-tech text-slate-300 mt-0.5">
-                                    <span>
-                                      {lvlProg.stars > 0
-                                        ? '⭐'.repeat(lvlProg.stars)
-                                        : '☆☆☆'}
-                                    </span>
-                                    <span>💾 {coresCount}/3</span>
-                                    <span>🪙 +{lvl.bytecoins}</span>
-                                  </div>
-                                </div>
-
-                                {lvlUnlocked ? (
-                                  <button
-                                    onClick={() => startLevel(lvl.id)}
-                                    className="px-4 py-2 rounded-xl bg-[#00FF66] text-[#050811] font-arcade text-xs font-black flex items-center gap-1 shrink-0 cursor-pointer"
-                                  >
-                                    <span>PLAY</span>
-                                    <ArrowRight className="w-3.5 h-3.5" />
-                                  </button>
-                                ) : (
-                                  <div className="px-3 py-1.5 rounded-xl bg-slate-900 text-slate-500 font-mono-tech text-[10px] font-bold shrink-0">
-                                    🔒 LOCKED
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+          <VerticalNetworkMap
+            saveData={saveData}
+            transitionFromLevelId={mapTransition.fromLevelId}
+            transitionToLevelId={mapTransition.toLevelId}
+            onClearTransition={clearMapTransition}
+            onSelectPlayLevel={(lvlId) => startLevel(lvlId)}
+            onGoHome={() => setScreen('HOME')}
+            onOpenSettings={() => {
+              setConfirmReset(false);
+              setShowSettingsModal(true);
+            }}
+          />
         )}
 
         {/* =====================================================================
@@ -459,7 +298,7 @@ export default function App() {
             initialBestDataCores={getLevelProgress(saveData, currentLevelConfig.id).dataCoresCollected}
             onLevelComplete={handleLevelComplete}
             onExitToMap={() => {
-              setExpandedWorldId(currentLevelConfig.worldId);
+              setMapTransition({ fromLevelId: null, toLevelId: null });
               setScreen('MAP');
             }}
           />
@@ -471,8 +310,8 @@ export default function App() {
         {screen === 'LEVEL_COMPLETE' && lastSummary && (
           <div className="w-full h-full flex flex-col items-center justify-between p-6 bg-[#050811] text-center overflow-y-auto">
             <div className="w-full flex items-center justify-between text-xs font-mono-tech text-slate-400">
-              <span>WORLD {getLevelById(lastSummary.levelId).worldId}</span>
-              <span>LEVEL {lastSummary.levelId}/35</span>
+              <span>WORLD {getLevelById(lastSummary.levelId).worldId} / 7</span>
+              <span>LEVEL {lastSummary.levelId} / 35</span>
             </div>
 
             <div className="w-full max-w-sm rounded-3xl bg-[#09142A] border-2 border-[#00E5FF] p-6 space-y-4 electric-glow my-auto">
@@ -485,12 +324,21 @@ export default function App() {
                 LEVEL COMPLETE
               </h2>
 
+              {lastSummary.isWorldEnd && getLevelById(lastSummary.levelId).worldCompleteBanner && (
+                <div className="rounded-2xl bg-[#062019] border border-[#00FF66] px-3 py-2 text-xs font-mono-tech font-extrabold text-[#00FF66]">
+                  <div>{getLevelById(lastSummary.levelId).worldCompleteBanner?.restoredText}</div>
+                  <div className="text-[#00E5FF]">
+                    {getLevelById(lastSummary.levelId).worldCompleteBanner?.unlockedText}
+                  </div>
+                </div>
+              )}
+
               {/* Estrellas obtenidas (⭐ a ⭐⭐⭐) */}
               <div className="text-4xl tracking-widest py-1">
                 {'⭐'.repeat(lastSummary.stars)}
               </div>
 
-              {/* Desglose exacto de la especificación (Sección 19) */}
+              {/* Desglose de puntuación */}
               <div className="bg-[#050811] rounded-2xl border border-[#00E5FF]/30 p-4 space-y-2.5 font-mono-tech text-sm">
                 <div className="flex items-center justify-between text-[#00E5FF] font-bold">
                   <span>🪙 + BYTECOINS</span>
@@ -513,26 +361,25 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Botones: CONTINUE (directo al siguiente nivel) y MAP/HOME */}
+              {/* Botones: CONTINUE (anima el avance de The Hacker en el Mapa Vertical) y NEXT LEVEL directo */}
               <div className="flex flex-col gap-2.5 pt-2">
                 <button
-                  onClick={handleContinueAfterLevel}
+                  onClick={handleContinueToMapAnimation}
                   className="w-full py-4 rounded-2xl bg-[#00FF66] hover:bg-[#1aff75] text-[#050811] font-arcade text-lg font-black tracking-wider shadow-[0_0_20px_rgba(0,255,102,0.4)] flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>CONTINUE</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
 
-                <button
-                  onClick={() => {
-                    setExpandedWorldId(getLevelById(lastSummary.levelId).worldId);
-                    setScreen('MAP');
-                  }}
-                  className="w-full py-3 rounded-2xl bg-[#0C1A36] border border-[#00E5FF] text-[#00E5FF] font-arcade text-sm font-extrabold flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <MapIcon className="w-4 h-4" />
-                  <span>MAP / HOME</span>
-                </button>
+                {!lastSummary.isGameEnd && (
+                  <button
+                    onClick={handleDirectNextLevel}
+                    className="w-full py-3 rounded-2xl bg-[#0C1A36] border border-[#00E5FF] text-[#00E5FF] font-arcade text-xs font-extrabold flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>PLAY NEXT LEVEL DIRECTLY</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -543,56 +390,7 @@ export default function App() {
         )}
 
         {/* =====================================================================
-            5. PANTALLA DE TRANSICIÓN ENTRE MUNDOS (WORLD UNLOCKED!)
-           ===================================================================== */}
-        {screen === 'WORLD_TRANSITION' && lastSummary && (
-          <div className="w-full h-full flex flex-col items-center justify-between p-6 bg-[#050811] text-center overflow-y-auto">
-            <div />
-            <div className="w-full max-w-sm rounded-3xl bg-[#09142A] border-2 border-[#00FF66] p-6 space-y-4 matrix-glow my-auto">
-              <CharacterIllustration size={135} className="mx-auto" />
-
-              <div className="font-mono-tech text-xs font-extrabold text-[#00FF66] tracking-widest">
-                {getLevelById(lastSummary.levelId).worldCompleteBanner?.restoredText ||
-                  'SYSTEM RESTORED!'}
-              </div>
-
-              <h2 className="font-arcade text-3xl font-black text-[#00E5FF] text-electric-glow">
-                {getLevelById(lastSummary.levelId).worldCompleteBanner?.unlockedText ||
-                  'NEXT WORLD UNLOCKED!'}
-              </h2>
-
-              <p className="text-xs text-slate-200 leading-relaxed bg-[#050811] p-3.5 rounded-2xl border border-[#00E5FF]/30">
-                {
-                  WORLDS_DATA.find(
-                    (w) => w.id === Math.min(7, getLevelById(lastSummary.levelId).worldId + 1)
-                  )?.storyHint
-                }
-              </p>
-
-              <button
-                onClick={handleContinueFromWorldTransition}
-                className="w-full py-4 rounded-2xl bg-[#00FF66] text-[#050811] font-arcade text-base font-black tracking-wider flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>CONTINUE TO LEVEL 1</span>
-                <ArrowRight className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => {
-                  setExpandedWorldId(Math.min(7, getLevelById(lastSummary.levelId).worldId + 1));
-                  setScreen('MAP');
-                }}
-                className="w-full py-2.5 rounded-2xl bg-[#0C1A36] text-[#00E5FF] font-arcade text-xs font-bold cursor-pointer"
-              >
-                MAP / HOME
-              </button>
-            </div>
-            <div />
-          </div>
-        )}
-
-        {/* =====================================================================
-            6. FINAL DEL JUEGO (NIVEL 35 COMPLETADO - SECCIÓN 58)
+            5. FINAL DEL JUEGO (NIVEL 35 COMPLETADO)
            ===================================================================== */}
         {screen === 'GAME_ENDING' && (
           <div className="w-full h-full flex flex-col items-center justify-between p-5 bg-[#050811] text-center overflow-y-auto space-y-4">
@@ -606,7 +404,7 @@ export default function App() {
                 </h2>
               </div>
 
-              {/* Intercambio humorístico exacto entre AI y THE HACKER */}
+              {/* Intercambio humorístico entre AI y THE HACKER */}
               <div className="bg-[#050811] rounded-2xl border border-[#00E5FF]/40 p-3.5 text-left space-y-2 text-xs">
                 <div className="bg-[#0A1931] p-2.5 rounded-xl border-l-4 border-[#00E5FF]">
                   <span className="font-mono-tech font-extrabold text-[#00E5FF] block">AI:</span>
@@ -677,7 +475,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => {
-                    setExpandedWorldId(7);
+                    setMapTransition({ fromLevelId: null, toLevelId: null });
                     setScreen('MAP');
                   }}
                   className="py-3.5 rounded-2xl bg-[#0C1A36] border border-[#00E5FF] text-[#00E5FF] font-arcade text-sm font-black cursor-pointer"
@@ -690,7 +488,7 @@ export default function App() {
         )}
 
         {/* =====================================================================
-            7. MODAL DE CONFIGURACIÓN (SETTINGS - SECCIÓN 65)
+            6. MODAL DE CONFIGURACIÓN (SETTINGS)
            ===================================================================== */}
         {showSettingsModal && (
           <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
