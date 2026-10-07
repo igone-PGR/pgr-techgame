@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050811" />
+      <stop offset="50%" stop-color="#0A1428" />
+      <stop offset="100%" stop-color="#040B18" />
+    </linearGradient>
+    <linearGradient id="blueGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" />
+      <stop offset="100%" stop-color="#0077FF" />
+    </linearGradient>
+    <linearGradient id="matrixGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00FF66" />
+      <stop offset="100%" stop-color="#00B84D" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="110" fill="url(#bgGrad)" />
+  <rect x="24" y="24" width="464" height="464" rx="92" fill="none" stroke="url(#blueGlow)" stroke-width="8" stroke-opacity="0.6" />
+  <!-- Digital Grid Lines -->
+  <path d="M80 140 H432 M80 256 H432 M80 372 H432 M140 80 V432 M256 80 V432 M372 80 V432" stroke="#00E5FF" stroke-opacity="0.12" stroke-width="3" />
+  <!-- Cap Top -->
+  <path d="M156 190 C156 120, 356 120, 356 190 Z" fill="#111827" stroke="#00E5FF" stroke-width="6" />
+  <path d="M196 186 C196 132, 316 132, 316 186 Z" fill="#F8FAFC" />
+  <!-- Cap Visor -->
+  <path d="M142 184 Q256 168 382 192 Q390 206 350 208 Q256 194 148 202 Z" fill="#0B0F19" stroke="#00E5FF" stroke-width="5" />
+  <!-- Face Cartoon -->
+  <rect x="172" y="196" width="168" height="148" rx="54" fill="#FDBA8C" stroke="#1E293B" stroke-width="6" />
+  <!-- Hair sides -->
+  <path d="M156 198 Q140 230 168 252 Q176 220 180 198 Z" fill="#5C3317" />
+  <path d="M356 198 Q372 230 344 252 Q336 220 332 198 Z" fill="#5C3317" />
+  <!-- Nerd Glasses -->
+  <rect x="180" y="222" width="66" height="48" rx="10" fill="#050811" fill-opacity="0.25" stroke="#0B0F19" stroke-width="10" />
+  <rect x="266" y="222" width="66" height="48" rx="10" fill="#050811" fill-opacity="0.25" stroke="#0B0F19" stroke-width="10" />
+  <line x1="246" y1="244" x2="266" y2="244" stroke="#0B0F19" stroke-width="10" />
+  <!-- Eyes & Glint -->
+  <circle cx="214" cy="246" r="10" fill="#3B2314" />
+  <circle cx="298" cy="246" r="10" fill="#3B2314" />
+  <circle cx="218" cy="242" r="4" fill="#00FF66" />
+  <circle cx="302" cy="242" r="4" fill="#00FF66" />
+  <!-- Friendly Smile -->
+  <path d="M222 296 Q256 322 290 296" fill="none" stroke="#1E293B" stroke-width="8" stroke-linecap="round" />
+  <!-- Blue Hoodie Collar & Badge -->
+  <path d="M148 396 C154 342, 358 342, 364 396 L380 444 H132 Z" fill="#1E3A8A" stroke="#00E5FF" stroke-width="6" />
+  <rect x="234" y="380" width="44" height="54" rx="8" fill="#00FF66" stroke="#050811" stroke-width="5" />
+</svg>

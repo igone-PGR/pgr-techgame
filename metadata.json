@@ -1,0 +1,6 @@
+{
+  "name": "Ledger Protocol: Genesis",
+  "description": "Videojuego 2D móvil de plataformas con estética Cyberpunk Retro Terminal para aprender los fundamentos de Blockchain.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
