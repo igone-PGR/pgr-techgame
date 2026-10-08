@@ -58,11 +58,11 @@ export const VerticalNetworkMap: React.FC<VerticalNetworkMapProps> = ({
     unlockedText: string;
   } | null>(null);
 
-  // Calculamos las coordenadas geométricas de las 7 Islas Digitales (de abajo hacia arriba: Mundo 1 abajo, Mundo 7 arriba)
+  // Calculamos las coordenadas geométricas de las 7 Islas Digitales (de arriba hacia abajo: Mundo 1 arriba, scroll down hasta Mundo 7 abajo)
   const islands: IslandCoord[] = useMemo(() => {
     return WORLDS_DATA.map((world, idx) => {
-      // idx 0 (World 1) en la parte inferior (~3380), idx 6 (World 7) en la cúspide (~420)
-      const centerY = MAP_HEIGHT - 380 - idx * 485;
+      // idx 0 (World 1) arriba del todo (~260), idx 6 (World 7) abajo (~3320)
+      const centerY = 260 + idx * 510;
       // Curva orgánica suave izquierda-derecha para las islas
       const centerX =
         world.id === 7
@@ -71,13 +71,13 @@ export const VerticalNetworkMap: React.FC<VerticalNetworkMapProps> = ({
           ? 215
           : 265;
 
-      // Los 5 niveles dentro de cada isla forman un recorrido ascendente 1 -> 2 -> 3 -> 4 -> 5 sobre la plataforma
+      // Los 5 niveles dentro de cada isla forman un recorrido descendente 1 -> 2 -> 3 -> 4 -> 5 sobre la plataforma
       const relativeOffsets: Array<{ dx: number; dy: number }> = [
-        { dx: -78, dy: 74 },  // Nivel 1 (entrada inferior de la isla)
-        { dx: 52, dy: 42 },   // Nivel 2
-        { dx: -48, dy: 4 },   // Nivel 3 (centro de la isla)
-        { dx: 64, dy: -34 },  // Nivel 4
-        { dx: -10, dy: -76 }, // Nivel 5 (cúspide de salida hacia el siguiente mundo)
+        { dx: -78, dy: -74 }, // Nivel 1 (entrada superior de la isla)
+        { dx: 52, dy: -38 },  // Nivel 2
+        { dx: -48, dy: 2 },   // Nivel 3 (centro de la isla)
+        { dx: 64, dy: 40 },   // Nivel 4
+        { dx: -10, dy: 76 },  // Nivel 5 (salida inferior hacia el siguiente mundo)
       ];
 
       const nodes: NodeCoord[] = relativeOffsets.map((off, nIdx) => {
@@ -395,7 +395,7 @@ export const VerticalNetworkMap: React.FC<VerticalNetworkMapProps> = ({
               const midY = (topNodeCurrent.y + bottomNodeNext.y) / 2;
               const ctrlX1 = topNodeCurrent.x + (idx % 2 === 0 ? 55 : -55);
               const ctrlX2 = bottomNodeNext.x + (idx % 2 === 0 ? -45 : 45);
-              const pathD = `M ${topNodeCurrent.x} ${topNodeCurrent.y} C ${ctrlX1} ${midY + 30}, ${ctrlX2} ${midY - 30}, ${bottomNodeNext.x} ${bottomNodeNext.y}`;
+              const pathD = `M ${topNodeCurrent.x} ${topNodeCurrent.y} C ${ctrlX1} ${midY - 30}, ${ctrlX2} ${midY + 30}, ${bottomNodeNext.x} ${bottomNodeNext.y}`;
 
               return (
                 <g key={`world-bridge-${island.worldId}`}>

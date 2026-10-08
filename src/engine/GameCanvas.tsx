@@ -1436,9 +1436,29 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         )}
       </div>
 
-      {/* 20 y 21. CONTROLES TÁCTILES GRANDES (Parte inferior izquierda: ◀ ▶ | Parte inferior derecha: ⬆) */}
+      {/* CONTROLES TÁCTILES GRANDES (Parte inferior izquierda: ⬆ SALTAR | Parte inferior derecha: ◀ ▶ ADELANTE/DETRÁS) */}
       <footer className="w-full bg-[#070E1E] border-t border-[#00E5FF]/30 px-4 py-3 flex items-center justify-between shrink-0 z-20">
-        {/* Parte inferior izquierda: ◀ ▶ */}
+        {/* Parte inferior izquierda: ⬆ SALTAR */}
+        <div>
+          <button
+            onTouchStart={handleTouchJump(true)}
+            onTouchEnd={handleTouchJump(false)}
+            onTouchCancel={handleTouchJump(false)}
+            onMouseDown={handleTouchJump(true)}
+            onMouseUp={handleTouchJump(false)}
+            onMouseLeave={handleTouchJump(false)}
+            aria-label="Saltar"
+            className={`w-24 h-16 sm:w-28 sm:h-18 rounded-2xl font-arcade text-2xl font-black flex items-center justify-center transition-all cursor-pointer ${
+              activeTouch.jump
+                ? 'bg-[#00FF66] text-[#050811] scale-95 shadow-[0_0_24px_#00FF66]'
+                : 'bg-[#0B221E] text-[#00FF66] border-2 border-[#00FF66]'
+            }`}
+          >
+            ⬆
+          </button>
+        </div>
+
+        {/* Parte inferior derecha: ◀ ▶ ADELANTE / DETRÁS */}
         <div className="flex items-center gap-3">
           <button
             onTouchStart={handleTouchDir('left', true)}
@@ -1472,26 +1492,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             }`}
           >
             ▶
-          </button>
-        </div>
-
-        {/* Parte inferior derecha: ⬆ (Sin botón de habilidad especial) */}
-        <div>
-          <button
-            onTouchStart={handleTouchJump(true)}
-            onTouchEnd={handleTouchJump(false)}
-            onTouchCancel={handleTouchJump(false)}
-            onMouseDown={handleTouchJump(true)}
-            onMouseUp={handleTouchJump(false)}
-            onMouseLeave={handleTouchJump(false)}
-            aria-label="Saltar"
-            className={`w-24 h-16 sm:w-28 sm:h-18 rounded-2xl font-arcade text-2xl font-black flex items-center justify-center transition-all cursor-pointer ${
-              activeTouch.jump
-                ? 'bg-[#00FF66] text-[#050811] scale-95 shadow-[0_0_24px_#00FF66]'
-                : 'bg-[#0B221E] text-[#00FF66] border-2 border-[#00FF66]'
-            }`}
-          >
-            ⬆
           </button>
         </div>
       </footer>
